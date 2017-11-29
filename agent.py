@@ -3,10 +3,32 @@ from move import Move
 from random import choice
 
 
+class Point:
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+
+    def move(self, dx, dy):
+        return Point(self.x + dx, self.y + dy)
+
+    @staticmethod
+    def manhattan(p1, p2):
+        return abs(p1.x - p2.x) + abs(p1.y - p2.y)
+
+    def __str__(self):
+        return "Point(%s,%s)" % (self.x, self.y)
+
+    def __eq__(self, other):
+        return self.__dict__ == other.__dict__
+
+
 class Agent:
+    board_height = 25
+    board_width = 25
+
     def __init__(self):
-        self.board_width = None
-        self.board_height = None
+        self.board_items = []
+        self.direction = None
 
     def get_move(self, board, score, turns_alive, turns_to_starve, direction):
         """This function behaves as the 'brain' of the snake. You only need to change the code in this function for
@@ -43,35 +65,46 @@ class Agent:
         Move.LEFT and Move.RIGHT changes the direction of the snake. In example, if the snake is facing north and the
         move left is made, the snake will go one block to the left and change its direction to west.
         """
-        snake_head, board = self.scan_board(board)
-        for move in list(Move):
-            if snake_head
+        self.board_items = Agent.scan_board(board)
+        self.direction = direction
+        legal_moves = self.legal_moves()
 
-        return move
+        positive_moves = {}
+        for food in self.board_items[GO.FOOD]:
+            current_manhattan = Point.manhattan(self.board_items[GO.SNAKE_HEAD], food)
+            for move in legal_moves:
+                possible_position = self.next_position(move)
+                manhattan_distance = Point.manhattan(possible_position, food)
+                if manhattan_distance <= current_manhattan:
+                    positive_moves[manhattan_distance] = move
+        if positive_moves:
+            return positive_moves[min(positive_moves.keys())]
+        elif legal_moves:
+            return choice(legal_moves)
+        else:
+            return Move.STRAIGHT
 
-    def next_position(self):
-        pass
-
-    def scan_board(self, board):
-        self.board_width = len(board)
-        self.board_height = len(board[0])
-        snake_head = (-1, -1)
-        board_items = {GO.SNAKE_BODY: [], GO.EMPTY: [], GO.WALL: [], GO.FOOD: []}
-        for x in range(self.board_width):
-            for y in range(self.board_height):
+    @staticmethod
+    def scan_board(board):
+        board_items = {GO.SNAKE_BODY: [], GO.EMPTY: [], GO.WALL: [], GO.FOOD: [], GO.SNAKE_HEAD: None}
+        for x in range(Agent.board_width):
+            for y in range(Agent.board_height):
                 item = board[x][y]
-                location = (x, y)
+                location = Point(x, y)
                 if item == GO.SNAKE_HEAD:
-                    snake_head = location
+                    board_items[GO.SNAKE_HEAD] = location
                     board_items[GO.SNAKE_BODY].append(location)
                 else:
                     board_items[item].append(location)
-        return snake_head, board_items
+        return board_items
+
+    def legal_moves(self):
+        return [move for move in list(Move) if self.next_position(move) in self.board_items[GO.EMPTY] + self.board_items[GO.FOOD]]
+
+    def next_position(self, move):
+        current_position = self.board_items[GO.SNAKE_HEAD]
+        dx, dy = self.direction.get_new_direction(move).get_xy_manipulation()
+        return current_position.move(dx, dy)
 
     def on_die(self):
-        """This function will be called whenever the snake dies. After its dead the snake will be reincarnated into a
-        new snake and its life will start over. This means that the next time the get_move function is called,
-        it will be called for a fresh snake. Use this function to clean up variables specific to the life of a single
-        snake or to host a funeral.
-        """
         pass
